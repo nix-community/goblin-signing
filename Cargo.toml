@@ -1,8 +1,11 @@
 [package]
 name = "goblin-signing"
+license = "MIT"
 version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+repository = "https://github.com/RaitoBezarius/goblin-signing"
 
 [dependencies]
+digest = "0.10.6"
+# waiting for a release of goblin
+goblin = { version = "0.6.0", git = "https://github.com/m4b/goblin.git", branch = "master" }
