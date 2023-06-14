@@ -8,4 +8,10 @@ repository = "https://github.com/RaitoBezarius/goblin-signing"
 [dependencies]
 digest = "0.10.6"
 # waiting for a release of goblin
-goblin = { version = "0.6.0", git = "https://github.com/m4b/goblin.git", branch = "master" }
+goblin = { git = "https://github.com/RaitoBezarius/goblin.git", branch = "write-certs" }
+cms = { git = "https://github.com/RustCrypto/formats", default-features = false }
+der = { git = "https://github.com/RustCrypto/formats", default-features = false }
+x509-cert = { git = "https://github.com/RustCrypto/formats", default-features = false }
+
+[[example]]
+name = "sign_binary"
