@@ -1,10 +1,10 @@
 use cms::content_info::ContentInfo;
-use cms::signed_data::SignedData;
+use cms::signed_data::{SignedData, EncapsulatedContentInfo};
 use der::asn1::OctetString;
 use goblin::pe::certificate_table::{AttributeCertificate, AttributeCertificateType};
-use x509_cert::der::{Decode, Sequence, Result};
+use x509_cert::der::{Decode, Sequence, Result, Any};
 use x509_cert::der::asn1::ObjectIdentifier;
-use x509_cert::spki::AlgorithmIdentifierWithOid;
+use x509_cert::spki::{AlgorithmIdentifierWithOid, AlgorithmIdentifierOwned};
 
 /// SPC_INDIRECT_DATA_OBJID http://oid-info.com/get/1.3.6.1.4.1.311.2.1.4
 pub const SPC_INDIRECT_DATA_OBJID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.3.6.1.4.1.311.2.1.4");
@@ -13,13 +13,19 @@ pub const SPC_INDIRECT_DATA_OBJID: ObjectIdentifier = ObjectIdentifier::new_unwr
 pub struct DigestInfo {
     // Technically: RFC3279 only?
     // Not updates, or is it?
-    pub digest_algorithm: AlgorithmIdentifierWithOid,
+    pub digest_algorithm: AlgorithmIdentifierOwned,
     pub digest: OctetString,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Sequence)]
+pub struct SpcAttributeTypeAndOptionalValue {
+    pub content_type: ObjectIdentifier,
+    pub value: Option<Any>
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Sequence)]
 pub struct SpcIndirectDataContent {
-    pub data: ContentInfo,
+    pub data: SpcAttributeTypeAndOptionalValue,
     pub message_digest: DigestInfo
 }
 
