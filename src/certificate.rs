@@ -1,25 +1,26 @@
 use cms::content_info::ContentInfo;
 use cms::signed_data::SignedData;
+use der::asn1::OctetString;
 use goblin::pe::certificate_table::{AttributeCertificate, AttributeCertificateType};
-use x509_cert::der::{Encode, Decode, Sequence, AnyRef, Reader};
-use x509_cert::der::asn1::{ObjectIdentifier, OctetStringRef};
-use x509_cert::spki::AlgorithmIdentifier;
+use x509_cert::der::{Decode, Sequence, Result};
+use x509_cert::der::asn1::ObjectIdentifier;
+use x509_cert::spki::AlgorithmIdentifierWithOid;
 
 /// SPC_INDIRECT_DATA_OBJID http://oid-info.com/get/1.3.6.1.4.1.311.2.1.4
 pub const SPC_INDIRECT_DATA_OBJID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.3.6.1.4.1.311.2.1.4");
 
 #[derive(Clone, Debug, Eq, PartialEq, Sequence)]
-pub struct DigestInfo<'a> {
+pub struct DigestInfo {
     // Technically: RFC3279 only?
     // Not updates, or is it?
-    pub digest_algorithm: AlgorithmIdentifier<AnyRef<'a>>,
-    pub digest: OctetStringRef<'a>,
+    pub digest_algorithm: AlgorithmIdentifierWithOid,
+    pub digest: OctetString,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Sequence)]
-struct SpcIndirectDataContent<'a> {
+pub struct SpcIndirectDataContent {
     pub data: ContentInfo,
-    pub message_digest: DigestInfo<'a>
+    pub message_digest: DigestInfo
 }
 
 pub trait AttributeCertificateExt {
@@ -41,14 +42,14 @@ impl<'a> AttributeCertificateExt for AttributeCertificate<'a> {
 
     fn as_spc_indirect_data_content(&self) -> Option<Result<SpcIndirectDataContent>> {
         self.as_signed_data()
-            .map(|maybe_sdata| {
+            .and_then(|maybe_sdata| {
                 if let Ok(sdata) = maybe_sdata {
                     if sdata.encap_content_info.econtent_type != SPC_INDIRECT_DATA_OBJID {
                         return None;
                     }
 
                     // This is bad
-                    Some(sdata.encap_content_info.econtent.unwrap().decode_as::<SpcIndirectDataContent<'a>>())
+                    Some(sdata.encap_content_info.econtent.unwrap().decode_as::<SpcIndirectDataContent>())
                 } else {
                     None
                 }

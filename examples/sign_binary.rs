@@ -6,5 +6,5 @@ fn main() {
     let file = include_bytes!("../tests/bins/nixos-uki.efi");
     let file = &file[..];
     let pe = PE::parse(file).unwrap();
-    println!("{:#?}", pe.certificates.first().unwrap().as_signed_data().unwrap().unwrap());
+    println!("{:#?}", pe.certificates.first().unwrap().as_spc_indirect_data_content().unwrap().unwrap());
 }

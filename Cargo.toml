@@ -10,8 +10,11 @@ digest = "0.10.6"
 # waiting for a release of goblin
 goblin = { git = "https://github.com/RaitoBezarius/goblin.git", branch = "write-certs" }
 cms = { git = "https://github.com/RustCrypto/formats" }
-der = { git = "https://github.com/RustCrypto/formats" }
+der = { git = "https://github.com/RustCrypto/formats", default-features = false }
 x509-cert = { git = "https://github.com/RustCrypto/formats" }
+
+[patch.crates-io]
+der = { git = "https://github.com/RustCrypto/formats" }
 
 [[example]]
 name = "sign_binary"
