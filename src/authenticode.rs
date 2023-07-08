@@ -1,8 +1,9 @@
-use digest::{Digest, Output};
+use digest::{DynDigest, Digest, Output};
 use goblin::pe::PE;
 
 pub trait Authenticode {
     fn authenticode_digest<D: Digest>(&self) -> Output<D>;
+    fn authenticode_dyndigest(&self, hasher: Box<dyn DynDigest>) -> Box<[u8]>;
 }
 
 impl<'a> Authenticode for PE<'a> {
@@ -14,5 +15,13 @@ impl<'a> Authenticode for PE<'a> {
         }
 
         digest.finalize()
+    }
+
+    fn authenticode_dyndigest(&self, mut hasher: Box<dyn DynDigest>) -> Box<[u8]> {
+        for chunk in self.authenticode_ranges() {
+            hasher.update(chunk);
+        }
+
+        hasher.finalize()
     }
 }

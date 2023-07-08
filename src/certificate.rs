@@ -1,10 +1,10 @@
 use cms::content_info::ContentInfo;
-use cms::signed_data::{SignedData, EncapsulatedContentInfo};
+use cms::signed_data::SignedData;
 use der::asn1::OctetString;
 use goblin::pe::certificate_table::{AttributeCertificate, AttributeCertificateType};
 use x509_cert::der::{Decode, Sequence, Result, Any};
 use x509_cert::der::asn1::ObjectIdentifier;
-use x509_cert::spki::{AlgorithmIdentifierWithOid, AlgorithmIdentifierOwned};
+use x509_cert::spki::AlgorithmIdentifierOwned;
 
 /// SPC_INDIRECT_DATA_OBJID http://oid-info.com/get/1.3.6.1.4.1.311.2.1.4
 pub const SPC_INDIRECT_DATA_OBJID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.3.6.1.4.1.311.2.1.4");
