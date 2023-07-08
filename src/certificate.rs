@@ -1,6 +1,7 @@
 use cms::content_info::ContentInfo;
-use cms::signed_data::SignedData;
+use cms::signed_data::{SignedData, EncapsulatedContentInfo};
 use der::asn1::OctetString;
+use digest::{Digest, Output};
 use goblin::pe::certificate_table::{AttributeCertificate, AttributeCertificateType};
 use x509_cert::der::{Decode, Sequence, Result, Any};
 use x509_cert::der::asn1::ObjectIdentifier;
@@ -8,6 +9,12 @@ use x509_cert::spki::AlgorithmIdentifierOwned;
 
 /// SPC_INDIRECT_DATA_OBJID http://oid-info.com/get/1.3.6.1.4.1.311.2.1.4
 pub const SPC_INDIRECT_DATA_OBJID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.3.6.1.4.1.311.2.1.4");
+/// https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-oshared/1537695a-28f0-4828-8b7b-d6dab62b8030
+pub const SPC_ATTRIBUTE_TYPE_AND_OPTIONAL_VALUE_OBJID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.3.6.1.4.1.311.2.1.29");
+pub const DEFAULT_DATA: SpcAttributeTypeAndOptionalValue = SpcAttributeTypeAndOptionalValue {
+    content_type: SPC_ATTRIBUTE_TYPE_AND_OPTIONAL_VALUE_OBJID,
+    value: None
+};
 
 #[derive(Clone, Debug, Eq, PartialEq, Sequence)]
 pub struct DigestInfo {
@@ -15,6 +22,21 @@ pub struct DigestInfo {
     // Not updates, or is it?
     pub digest_algorithm: AlgorithmIdentifierOwned,
     pub digest: OctetString,
+}
+
+impl DigestInfo {
+    pub fn from_authenticode<D: Digest>(digest: Output<D>) -> Result<DigestInfo> {
+        Ok(DigestInfo {
+            digest_algorithm: None,
+            digest: OctetString::new(digest.to_vec())?
+        })
+    }
+    pub fn as_spc_indirect_data_content(self) -> SpcIndirectDataContent {
+        SpcIndirectDataContent {
+            data: DEFAULT_DATA,
+            message_digest: self
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Sequence)]
@@ -29,12 +51,21 @@ pub struct SpcIndirectDataContent {
     pub message_digest: DigestInfo
 }
 
-pub trait AttributeCertificateExt {
+impl SpcIndirectDataContent {
+    pub fn as_encapsulated_content_info(&self) -> Result<EncapsulatedContentInfo> {
+        Ok(EncapsulatedContentInfo {
+            econtent_type: SPC_INDIRECT_DATA_OBJID,
+            econtent: Some(Any::encode_from(self)?)
+        })
+    }
+}
+
+pub trait AttributeCertificateExt<'a> {
     fn as_signed_data(&self) -> Option<Result<SignedData>>;
     fn as_spc_indirect_data_content(&self) -> Option<Result<SpcIndirectDataContent>>;
 }
 
-impl<'a> AttributeCertificateExt for AttributeCertificate<'a> {
+impl<'a> AttributeCertificateExt<'a> for AttributeCertificate<'a> {
     /// Return the pkcs7 [`ContentInfo`] attached to the [`PE`]
     fn as_signed_data(&self) -> Option<Result<SignedData>> {
         if self.certificate_type == AttributeCertificateType::PkcsSignedData {
@@ -61,5 +92,4 @@ impl<'a> AttributeCertificateExt for AttributeCertificate<'a> {
                 }
             })
     }
-
 }
