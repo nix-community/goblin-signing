@@ -16,6 +16,12 @@ pub struct DerivedKeypair {
     pub private_key_handle: cryptoki::object::ObjectHandle
 }
 
+impl EncodePublicKey for DerivedKeypair {
+    fn to_public_key_der(&self) -> spki::Result<der::Document> {
+        Ok(self.public_key.clone())
+    }
+}
+
 impl DerivedKeypair {
     pub fn new(private_key_handle: cryptoki::object::ObjectHandle, kt: cryptoki::object::KeyType, private_key_attributes: Vec<cryptoki::object::Attribute>) -> Result<Self, String> {
         Ok(DerivedKeypair {

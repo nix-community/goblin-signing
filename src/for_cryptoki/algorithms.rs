@@ -55,7 +55,7 @@ fn hash_alg_to_asn1(hash_alg: MechanismType) -> spki::Result<AlgorithmIdentifier
     })
 }
 
-impl<'sess> DynSignatureAlgorithmIdentifier for SignatureRequest<'sess> {
+impl<'sess, Signature> DynSignatureAlgorithmIdentifier for SignatureRequest<'sess, Signature> {
     fn signature_algorithm_identifier(&self) -> spki::Result<spki::AlgorithmIdentifierOwned> {
         match self.mechanism {
             Mechanism::RsaPkcsPss(params) => {

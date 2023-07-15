@@ -1,25 +1,30 @@
+use std::marker::PhantomData;
+use std::fmt::Debug;
+
 use cryptoki::{session::Session, mechanism::Mechanism};
 use signature::{Signer, Keypair};
 use crate::for_cryptoki::keypair::DerivedKeypair;
 
 #[derive(Debug)]
-pub struct SignatureRequest<'sess> {
+pub struct SignatureRequest<'sess, Signature> {
     pub(crate) mechanism: Mechanism,
     keypair: DerivedKeypair,
-    session: &'sess Session
+    session: &'sess Session,
+    _signature: PhantomData<Signature>
 }
 
-impl<'sess> SignatureRequest<'sess> {
+impl<'sess, Signature> SignatureRequest<'sess, Signature> {
     pub fn new(mechanism: Mechanism, keypair: DerivedKeypair, session: &'sess Session) -> Self {
         SignatureRequest {
             mechanism,
             keypair,
-            session
+            session,
+            _signature: PhantomData
         }
     }
 }
 
-impl<'sess> Keypair for SignatureRequest<'sess> {
+impl<'sess, Signature> Keypair for SignatureRequest<'sess, Signature> {
     // TODO: keep it sync with DerivedKeypair::VerifyingKey
     type VerifyingKey = DerivedKeypair;
 
@@ -28,9 +33,17 @@ impl<'sess> Keypair for SignatureRequest<'sess> {
     }
 }
 
-impl<'sess> Signer<Vec<u8>> for SignatureRequest<'sess> {
-    fn try_sign(&self, msg: &[u8]) -> core::result::Result<Vec<u8>, signature::Error> {
-        self.session.sign(&self.mechanism, self.keypair.private_key_handle, msg).map_err(signature::Error::from_source)
+impl<'sess, Signature> Signer<Signature> for SignatureRequest<'sess, Signature> 
+where
+    Signature: for<'a> TryFrom<&'a [u8]>,
+    for<'a> <Signature as TryFrom<&'a [u8]>>::Error: Debug
+{
+    fn try_sign(&self, msg: &[u8]) -> core::result::Result<Signature, signature::Error> {
+        let raw_data = self.session
+            .sign(&self.mechanism, self.keypair.private_key_handle, msg)
+            .map_err(signature::Error::from_source)?;
+
+        Ok(raw_data.as_slice().try_into().unwrap())
     }
 }
 
