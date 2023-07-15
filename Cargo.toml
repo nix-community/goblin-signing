@@ -9,12 +9,17 @@ repository = "https://github.com/RaitoBezarius/goblin-signing"
 digest = { version = "0.10.6", features = [ "alloc" ] }
 # waiting for a release of goblin
 goblin = { git = "https://github.com/RaitoBezarius/goblin.git", branch = "write-certs" }
-cms = { git = "https://github.com/RustCrypto/formats", features = [ "builder" ] }
+cms = { version = "0.2.2", features = [ "builder" ] }
 der = { version = "0.7.7", default-features = false }
 x509-cert = { version = "0.2.3" }
 const-oid = { version = "0.9.3", features = [ "db" ] }
 sha2 = "0.10.6"
 signature = "2.1.0"
+rsa = "0.9.2"
+elliptic-curve = { version = "0.13.5", features = [ "alloc" ] }
+num-bigint = "0.4.3"
+spki = "0.7.2"
+cryptoki = "0.4.1"
 
 [[example]]
 name = "sign_binary"

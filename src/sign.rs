@@ -18,10 +18,9 @@ fn from_signed_data(sdata: &ContentInfo) -> Result<AttributeCertificate> {
 }
 
 /// Resign the given binary
-/// with the provided signer identifier, digest algorithm and signer entity
+/// with the provided signer identifier and signer entity
 pub fn resign<'pe, 's, D: Digest, S, Signature>(mut pe: PE<'pe>,
     sid: SignerIdentifier,
-    digest_algorithm: AlgorithmIdentifierOwned,
     signer: &'s S) -> Result<PE<'pe>>
 where
     S: Keypair + DynSignatureAlgorithmIdentifier,
@@ -34,7 +33,7 @@ where
         .as_spc_indirect_data_content()
         .as_encapsulated_content_info()?;
 
-    let signer_info = SignerInfoBuilder::new(signer, sid, digest_algorithm, &signature_content, None).unwrap();
+    let signer_info = SignerInfoBuilder::new(signer, sid, signer.signature_algorithm_identifier().unwrap(), &signature_content, None).unwrap();
     let mut signed_data_builder = SignedDataBuilder::new(&signature_content);
 
     let signed_data = signed_data_builder
