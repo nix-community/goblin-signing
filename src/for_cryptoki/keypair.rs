@@ -55,15 +55,16 @@ fn derive_public_key_from_private_key_data(kt: cryptoki::object::KeyType, attrib
 
     match kt {
         KeyType::RSA => {
-            let modulus: BigUint = BigUint::from_bytes_le(&attributes.iter().find_map(|attr| match attr {
+            let modulus: BigUint = BigUint::from_bytes_be(&attributes.iter().find_map(|attr| match attr {
                 Attribute::Modulus(modulus) => Some(modulus),
                 _ => None
             }).ok_or("No modulus in RSA key")?);
-            let p_exponent: BigUint = BigUint::from_bytes_le(&attributes.iter().find_map(|attr| match attr {
+            let p_exponent: BigUint = BigUint::from_bytes_be(&attributes.iter().find_map(|attr| match attr {
                 Attribute::PublicExponent(p_exponent) => Some(p_exponent),
                 _ => None
             }).ok_or("No public exponent in RSA key")?);
 
+            println!("modulus: {:#?}, public exponent: {:#?}", modulus, p_exponent);
             // Build an RsaPublicKey from modulus, p_exponent
             Ok(RsaPublicKey::new(modulus, p_exponent).unwrap())
         },

@@ -13,6 +13,8 @@ fn main() {
     let file = &file[..];
     let pe = PE::parse(file).unwrap();
 
+    println!("{:?}", pe.certificates.first().unwrap().certificate);
+
     let mut pkcs11 = Pkcs11::new(
         std::env::var("PKCS11_SOFTHSM2_MODULE").unwrap()
     ).unwrap();
@@ -22,21 +24,33 @@ fn main() {
     println!("PKCS#11 initialized");
 
     // Take first slot
+    println!("Available tokens: {:#?}", pkcs11.get_slots_with_token().unwrap());
     let slot = pkcs11.get_slots_with_token().unwrap().remove(0);
 
-    println!("Obtained a security token, i.e. a slot");
+    println!("Obtained a security token, i.e. a slot: {:#?}", slot);
 
+    let _ = pkcs11.init_token(slot, "fedcba", "my first token").unwrap();
     let session = pkcs11.open_rw_session(slot).unwrap();
 
     println!("Session opened in read-write");
 
-    session.login(cryptoki::session::UserType::User, Some("fedcba"));
+    let _ = session.login(cryptoki::session::UserType::So, Some("fedcba")).unwrap();
+    println!("Logged in as the security officer");
 
+    let _ = session.init_pin("fedcba").unwrap();
+    println!("Normal pin initialized");
+
+    let _ = session.logout().unwrap();
+    println!("Logged out from the security officer");
+
+    let _ = session.login(cryptoki::session::UserType::User, Some("fedcba")).unwrap();
     println!("Logged in as a user");
 
-    let mechanism = Mechanism::RsaPkcsPss(PkcsPssParams { hash_alg: MechanismType::SHA256, mgf: PkcsMgfType::MGF1_SHA256, s_len: 0x0.into() });
+    println!("Available mechanisms: {:#?}", pkcs11.get_mechanism_list(slot).unwrap().into_iter().map(|mech| mech.to_string()).collect::<Vec<_>>());
+
+    let mechanism = Mechanism::Sha256RsaPkcs;
     let (public_key, private_key) = session.generate_key_pair(
-        &mechanism,
+        &Mechanism::RsaPkcsKeyPairGen,
         &[
             Attribute::Verify(true),
             Attribute::ModulusBits(2048.into())
@@ -53,7 +67,7 @@ fn main() {
 
     println!("New key generated on the security token");
 
-    let signer = SignatureRequest::<'_, rsa::pss::Signature>::new(
+    let signer = SignatureRequest::<'_, rsa::pkcs1v15::Signature>::new(
         mechanism,
         DerivedKeypair::from_session(private_key, &session).unwrap(),
         &session
@@ -61,11 +75,14 @@ fn main() {
 
     // TODO: assert public_key is the one we expect.
 
-    resign::<Sha256, _, _>(pe,
+    let pe = resign::<Sha256, _, _>(pe,
         cms::signed_data::SignerIdentifier::IssuerAndSerialNumber(
             IssuerAndSerialNumber {
-                issuer: RdnSequence::from_str("test").unwrap(),
+                issuer: RdnSequence::from_str("CN=test").unwrap(),
                 serial_number: 1_u32.into()
             }
-        ), &signer);
+        ), &signer).unwrap();
+
+    println!("Signed!");
+    println!("{:?}", pe.certificates.first().unwrap().certificate);
 }

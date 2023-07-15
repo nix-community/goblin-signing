@@ -38,12 +38,13 @@ where
         .as_spc_indirect_data_content()
         .as_encapsulated_content_info()?;
 
-    let signer_info = SignerInfoBuilder::new(signer, sid, signer.signature_algorithm_identifier().unwrap(), &signature_content, None).unwrap();
+    let signer_info = SignerInfoBuilder::new(signer, sid, AlgorithmIdentifierOwned { oid: D::OID, parameters: None }, &signature_content, None).unwrap();
     let mut signed_data_builder = SignedDataBuilder::new(&signature_content);
 
-    let signed_data = signed_data_builder
-        .add_signer_info(signer_info).unwrap()
-        .build().unwrap();
+    let signed_data_builder = signed_data_builder
+        .add_signer_info(signer_info).unwrap();
+
+    let signed_data = signed_data_builder.build().unwrap();
 
     // Clear all signatures, add the new one.
     pe.certificates.clear();
