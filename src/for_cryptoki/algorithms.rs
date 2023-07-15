@@ -1,16 +1,16 @@
 use const_oid::db::rfc5912::{ID_RSASSA_PSS, ID_MGF_1, ID_SHA_1, ID_SHA_256};
 use cryptoki::mechanism::{Mechanism, rsa::PkcsMgfType, MechanismType};
-use der::{asn1::Int, Sequence};
+use der::{asn1::Int, Sequence, Any, Encode, Tagged};
 use spki::{DynSignatureAlgorithmIdentifier, AlgorithmIdentifier};
 
 use super::signature_request::SignatureRequest;
 
-fn default_salt_length() -> Int {
-    Int::new(&0x20_usize.to_le_bytes()).unwrap()
+fn default_salt_length() -> u64 {
+    0x20
 }
 
-fn default_trailer_field() -> Int {
-    Int::new(&0x1_usize.to_le_bytes()).unwrap()
+fn default_trailer_field() -> u64 {
+    0x1
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Sequence)]
@@ -20,9 +20,17 @@ struct RsaSsaPssParams {
     // mask gen is ( id-mgf1, $hashAlgorithm ).
     mask_gen_algorithm: Option<AlgorithmIdentifier<AlgorithmIdentifier<()>>>,
     #[asn1(default = "default_salt_length")]
-    salt_length: Int,
+    salt_length: u64,
     #[asn1(default = "default_trailer_field")]
-    trailer_field: Int
+    trailer_field: u64
+}
+
+impl TryFrom<RsaSsaPssParams> for Any {
+    type Error = der::Error;
+
+    fn try_from(value: RsaSsaPssParams) -> der::Result<Self> {
+        Any::new(value.tag(), value.to_der()?)
+    }
 }
 
 fn mgf_to_asn1(mgf: PkcsMgfType) -> AlgorithmIdentifier<AlgorithmIdentifier<()>> {
@@ -56,9 +64,9 @@ impl<'sess> DynSignatureAlgorithmIdentifier for SignatureRequest<'sess> {
                     parameters: Some(RsaSsaPssParams {
                         hash_algorithm: Some(hash_alg_to_asn1(params.hash_alg)?),
                         mask_gen_algorithm: Some(mgf_to_asn1(params.mgf)),
-                        salt_length: Int::new(&usize::from(params.s_len).to_be_bytes())?,
-                        trailer_field: Int::new(&0x1_usize.to_be_bytes())?
-                    }.into())
+                        salt_length: u64::from(params.s_len),
+                        trailer_field: 0x1,
+                    }.try_into()?)
                 })
             },
             _ => todo!("please")

@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use cms::{builder::{SignerInfoBuilder, SignedDataBuilder}, signed_data::{SignedData, SignerInfo, SignerIdentifier}, content_info::ContentInfo};
 use der::Encode;
 use digest::Digest;
@@ -8,12 +10,14 @@ use goblin::pe::{PE, certificate_table::AttributeCertificate};
 
 use crate::{authenticode::Authenticode, certificate::DigestInfo};
 
-fn from_signed_data(sdata: &ContentInfo) -> Result<AttributeCertificate> {
+fn from_signed_data<'a>(sdata: ContentInfo) -> Result<AttributeCertificate<'a>> {
+    let certificate_bytes = sdata.to_der()?;
+
     Ok(AttributeCertificate {
-        length: 10,
+        length: u32::try_from(certificate_bytes.len()).unwrap() + 0x32,
         revision: goblin::pe::certificate_table::AttributeCertificateRevision::Revision2_0,
         certificate_type: goblin::pe::certificate_table::AttributeCertificateType::PkcsSignedData,
-        certificate: &sdata.to_der()?
+        certificate: Cow::Owned(certificate_bytes)
     })
 }
 
@@ -23,6 +27,7 @@ pub fn resign<'pe, 's, D: Digest, S, Signature>(mut pe: PE<'pe>,
     sid: SignerIdentifier,
     signer: &'s S) -> Result<PE<'pe>>
 where
+    D: const_oid::AssociatedOid,
     S: Keypair + DynSignatureAlgorithmIdentifier,
     S::VerifyingKey: EncodePublicKey,
     S: Signer<Signature>,
@@ -42,7 +47,7 @@ where
 
     // Clear all signatures, add the new one.
     pe.certificates.clear();
-    pe.certificates.push(from_signed_data(&signed_data)?);
+    pe.certificates.push(from_signed_data(signed_data)?);
 
     Ok(pe)
 }

@@ -34,9 +34,9 @@ impl DerivedKeypair {
         ]).unwrap();
 
         let mut key_type: Option<KeyType> = None;
-        for attr in pkey_attrs {
+        for attr in &pkey_attrs {
             if let Attribute::KeyType(kt) = attr {
-                key_type = Some(kt);
+                key_type = Some(*kt);
             }
         }
 

@@ -1,5 +1,6 @@
 use cms::content_info::ContentInfo;
 use cms::signed_data::{SignedData, EncapsulatedContentInfo};
+use const_oid::AssociatedOid;
 use der::asn1::OctetString;
 use digest::{Digest, Output};
 use goblin::pe::certificate_table::{AttributeCertificate, AttributeCertificateType};
@@ -25,9 +26,9 @@ pub struct DigestInfo {
 }
 
 impl DigestInfo {
-    pub fn from_authenticode<D: Digest>(digest: Output<D>) -> Result<DigestInfo> {
+    pub fn from_authenticode<D: Digest + AssociatedOid>(digest: Output<D>) -> Result<DigestInfo> {
         Ok(DigestInfo {
-            digest_algorithm: None,
+            digest_algorithm: AlgorithmIdentifierOwned { oid: D::OID, parameters: None },
             digest: OctetString::new(digest.to_vec())?
         })
     }
@@ -70,7 +71,7 @@ impl<'a> AttributeCertificateExt<'a> for AttributeCertificate<'a> {
     fn as_signed_data(&self) -> Option<Result<SignedData>> {
         if self.certificate_type == AttributeCertificateType::PkcsSignedData {
             Some(
-                ContentInfo::from_der(self.certificate).and_then(|cinfo| cinfo.content.decode_as::<SignedData>())
+                ContentInfo::from_der(&self.certificate).and_then(|cinfo| cinfo.content.decode_as::<SignedData>())
             )
         } else {
             None

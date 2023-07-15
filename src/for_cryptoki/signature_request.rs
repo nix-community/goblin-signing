@@ -24,7 +24,7 @@ impl<'sess> Keypair for SignatureRequest<'sess> {
     type VerifyingKey = DerivedKeypair;
 
     fn verifying_key(&self) -> Self::VerifyingKey {
-        self.keypair
+        self.keypair.clone()
     }
 }
 
