@@ -17,6 +17,33 @@ pub const DEFAULT_DATA: SpcAttributeTypeAndOptionalValue = SpcAttributeTypeAndOp
     value: None
 };
 
+#[Derive()]
+pub enum FieldTypes {
+    PrimeP,
+    CharatectisticTwo,
+}
+
+type FieldElement = x509_cert::der::asn1::OctetString;
+type ECPoint = x509_cert::der::asn1::OctetString;
+
+#[derive(Clone, Debug, Eq, PartialEq, Sequence)]
+pub struct Curve {
+    pub a: FieldElement,
+    pub b: FieldElement,
+    pub seed: Option<x509_cert::der::asn1::BitString>
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Sequence)]
+#[allow(non_camel_case_types)]
+pub struct ECParameters {
+    pub version: x509_cert::der::asn1::Int,
+    pub fieldID: FieldTypes,
+    pub curve: Curve,
+    pub base: ECPoint,
+    pub order: x509_cert::der::asn1::Int,
+    pub cofactor: Option<x509_cert::der::asn1::Int>,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Sequence)]
 pub struct DigestInfo {
     // Technically: RFC3279 only?

@@ -16,7 +16,12 @@ const-oid = { version = "0.9.3", features = [ "db" ] }
 sha2 = { version = "0.10.6", features = [ "oid" ] }
 signature = "2.1.0"
 rsa = "0.9.2"
-elliptic-curve = { version = "0.13.5", features = [ "alloc" ] }
+elliptic-curve = { version = "0.13.5", features = [ "alloc", "sec1" ] }
+p224 = "0.13.2"
+p256 = "0.13.2"
+p384 = "0.13.0"
+p521 = "0.13.0"
+ed25519 = "2.2.3"
 num-bigint = "0.4.3"
 spki = "0.7.2"
 cryptoki = "0.4.1"
