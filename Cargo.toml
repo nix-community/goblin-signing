@@ -6,12 +6,35 @@ edition = "2021"
 repository = "https://github.com/RaitoBezarius/goblin-signing"
 
 [dependencies]
-digest = "0.10.6"
+digest = { version = "0.10.6", features = [ "alloc" ] }
 # waiting for a release of goblin
-goblin = { git = "https://github.com/RaitoBezarius/goblin.git", branch = "write-certs" }
-cms = { git = "https://github.com/RustCrypto/formats", default-features = false }
-der = { git = "https://github.com/RustCrypto/formats", default-features = false }
-x509-cert = { git = "https://github.com/RustCrypto/formats", default-features = false }
+goblin = { git = "https://github.com/RaitoBezarius/goblin.git", branch = "goblin-signing" }
+cms = { version = "0.2.2", features = [ "builder" ] }
+der = { version = "0.7.7", default-features = false }
+x509-cert = { version = "0.2.3" }
+const-oid = { version = "0.9.3", features = [ "db" ] }
+sha2 = { version = "0.10.6", features = [ "oid" ] }
+signature = "2.1.0"
+rsa = "0.9.2"
+elliptic-curve = { version = "0.13.7", features = [ "alloc", "sec1" ] }
+primeorder = "=0.13.3"
+ecdsa = "0.16.8"
+ed25519 = "2.2.3"
+num-bigint = "0.4.3"
+spki = "0.7.2"
+cryptoki = "0.4.1"
+thiserror = "1.0.49"
+p224 = "0.13.0"
+p256 = "0.13.2"
+p384 = "0.13.0"
+p521 = "0.13.3"
+stderrlog = "0.5.4"
+
+[patch.crates-io]
+scroll = { git = "https://github.com/RaitoBezarius/scroll.git", branch = "goblin-signing" }
 
 [[example]]
 name = "sign_binary"
+
+[[example]]
+name = "verify_binary"
