@@ -9,3 +9,17 @@ pub enum SignatureError {
     #[error("Failed to run the signer information through the signer")]
     SigningError(#[from] x509_cert::builder::Error),
 }
+
+#[derive(Error, Debug)]
+pub enum VerificationError {
+    #[error("No certificate was found")]
+    NoCertificate,
+    #[error("Missing certificate from a signed data information")]
+    MissingCertificate(cms::signed_data::SignerInfos),
+    #[error("Authenticode is not matching, expected: {1}, got: {2}")]
+    InvalidAuthenticode(Option<cms::signed_data::CertificateSet>, String, String),
+    #[error("One of the certificate expired")]
+    CertificateExpiration(x509_cert::certificate::Certificate),
+    #[error("Untrusted certificate")]
+    UntrustedCertificate(x509_cert::certificate::Certificate),
+}
