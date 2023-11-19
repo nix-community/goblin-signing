@@ -9,3 +9,4 @@ pub mod certificate;
 pub mod verify;
 pub mod sign;
 pub mod pkcs11;
+pub mod efi;
