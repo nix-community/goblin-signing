@@ -99,6 +99,27 @@ pub trait AttributeCertificateExt<'a> {
     fn as_spc_indirect_data_content(&self) -> Option<Result<SpcIndirectDataContent>>;
 }
 
+pub trait SignedDataExt {
+    fn as_spc_indirect_data_content(&self) -> Option<Result<SpcIndirectDataContent>>;
+    fn as_message_digest(&self) -> Option<Result<DigestInfo>>;
+}
+
+impl SignedDataExt for SignedData {
+    fn as_spc_indirect_data_content(&self) -> Option<Result<SpcIndirectDataContent>> {
+        if self.encap_content_info.econtent_type != SPC_INDIRECT_DATA_OBJID {
+            return None;
+        }
+
+        // FIXME: propagate properly the unwrap issue.
+        Some(self.encap_content_info.econtent.as_ref().unwrap().decode_as::<SpcIndirectDataContent>())
+    }
+
+    fn as_message_digest(&self) -> Option<Result<DigestInfo>> {
+        self.as_spc_indirect_data_content()
+            .and_then(|maybe_spc| Some(maybe_spc.map(|spc| spc.message_digest)))
+    }
+}
+
 impl<'a> AttributeCertificateExt<'a> for AttributeCertificate<'a> {
     /// Return the pkcs7 [`ContentInfo`] attached to the [`PE`]
     fn as_signed_data(&self) -> Option<Result<SignedData>> {
@@ -115,12 +136,7 @@ impl<'a> AttributeCertificateExt<'a> for AttributeCertificate<'a> {
         self.as_signed_data()
             .and_then(|maybe_sdata| {
                 if let Ok(sdata) = maybe_sdata {
-                    if sdata.encap_content_info.econtent_type != SPC_INDIRECT_DATA_OBJID {
-                        return None;
-                    }
-
-                    // This is bad
-                    Some(sdata.encap_content_info.econtent.unwrap().decode_as::<SpcIndirectDataContent>())
+                    sdata.as_spc_indirect_data_content()
                 } else {
                     None
                 }
