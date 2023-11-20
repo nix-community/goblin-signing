@@ -7,7 +7,7 @@ use cms::cert::IssuerAndSerialNumber;
 use goblin::pe::{PE, writer::PEWriter};
 use goblin_signing::authenticode::Authenticode;
 use goblin_signing::sign::create_certificate;
-use goblin_signing::verify::{verify_pe_signatures, spc_indirect_data_content_from_certificates};
+use goblin_signing::verify::{verify_pe_signatures_no_trust, certificates_from_pe};
 use p256::ecdsa::SigningKey;
 use sha2::Sha256;
 use signature::rand_core::OsRng;
@@ -59,7 +59,7 @@ fn test_create_attribute_certificate() {
 fn test_attaching_attribute_certificate_to_pe() {
     let file = std::fs::read("tests/bins/nixos-uki.efi").unwrap();
     let pe = PE::parse(&file[..]).unwrap();
-    println!("PE original certificates: {:?}", spc_indirect_data_content_from_certificates(&pe));
+    println!("PE original certificates: {:?}", certificates_from_pe(&pe));
     let original_cert = pe.certificates.first().expect("Original PE does not have a certificate!").clone();
     let signing_key = SigningKey::random(&mut OsRng);
     let sid = build_issuer("CN=test", 1).expect("Failed to build a trivial issuer");
@@ -78,9 +78,9 @@ fn test_attaching_attribute_certificate_to_pe() {
     let cert = new_pe.certificates.first().unwrap();
     assert!(cert.1.certificate == attr_cert.certificate, "Attribute certificate is different from expected!");
     assert!(original_cert.1.certificate != cert.1.certificate, "Attribute certificate is same as original!");
-    println!("PE new certificates: {:?}", spc_indirect_data_content_from_certificates(&new_pe));
+    println!("PE new certificates: {:?}", certificates_from_pe(&new_pe));
     println!("New PE digest: {:?}", new_pe.authenticode_dyndigest(Box::new(sha2::Sha256::new())));
-    assert!(verify_pe_signatures(&new_pe), "PE signatures are not verified, wrong authenticode or wrong algorithm for the digest?");
+    assert!(verify_pe_signatures_no_trust(&new_pe).unwrap().0, "PE signatures are not verified, wrong authenticode or wrong algorithm for the digest?");
 }
 
 #[test]
@@ -99,5 +99,5 @@ fn test_multisig_pe() {
     let new_pe_bytes = pe_writer.write_into().expect("Failed to write the new PE with new certificate");
     let new_pe = PE::parse(&new_pe_bytes[..]).expect("Failed to read the new PE");
     assert_eq!(new_pe.certificates.len(), 2);
-    assert!(!verify_pe_signatures(&new_pe), "Rewriting the PE may change it; the signature should be invalidated.");
+    assert!(verify_pe_signatures_no_trust(&new_pe).unwrap().0, "Even if the PE contains an old invalid signature, it should contain a new valid signature.");
 }
