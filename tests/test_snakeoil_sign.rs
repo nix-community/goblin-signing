@@ -52,7 +52,7 @@ fn test_create_attribute_certificate() {
     let signing_key = SigningKey::random(&mut OsRng);
     let sid = build_issuer("CN=test", 1).expect("Failed to build a trivial issuer");
     let certificate = build_certificate("CN=test", 1, &signing_key);
-    let _ = create_certificate::<Sha256, _, ecdsa::der::Signature<_>>(&pe, certificate, sid, &signing_key).expect("Failed to build an attribute certificate");
+    let _ = create_certificate::<Sha256, _, ecdsa::der::Signature<_>>(&pe, vec![certificate], sid, &signing_key).expect("Failed to build an attribute certificate");
 }
 
 #[test]
@@ -69,7 +69,7 @@ fn test_attaching_attribute_certificate_to_pe() {
     std::fs::write("/tmp/pending.pe", &pending_pe[..]).expect("Failed to dump the unsigned PE temporarily");
     let pending_pe = PE::parse(&pending_pe[..]).expect("Failed to parse the unsigned PE");
     println!("Pending PE digest: {:?}", pending_pe.authenticode_dyndigest(Box::new(sha2::Sha256::new())));
-    let attr_cert = create_certificate::<Sha256, _, ecdsa::der::Signature<_>>(&pending_pe, certificate, sid, &signing_key).expect("Failed to build an attribute certificate");
+    let attr_cert = create_certificate::<Sha256, _, ecdsa::der::Signature<_>>(&pending_pe, vec![certificate], sid, &signing_key).expect("Failed to build an attribute certificate");
     pe_writer.attach_certificates(vec![attr_cert.clone()]).expect("Failed to attach a certificate to PE");
     let new_pe_bytes = pe_writer.write_into().expect("Failed to write the new PE with new certificate");
     std::fs::write("/tmp/signed.pe", &new_pe_bytes[..]).expect("Failed to dump the signed PE temporarily");
@@ -94,7 +94,7 @@ fn test_multisig_pe() {
     let mut pe_writer = PEWriter::new(pe).expect("Failed to create a PE writer");
     let pending_pe = pe_writer.write_into().expect("Failed to write an unsigned PE");
     let pending_pe = PE::parse(&pending_pe[..]).expect("Failed to parse the unsigned PE");
-    let attr_cert = create_certificate::<Sha256, _, ecdsa::der::Signature<_>>(&pending_pe, certificate, sid, &signing_key).expect("Failed to build an attribute certificate");
+    let attr_cert = create_certificate::<Sha256, _, ecdsa::der::Signature<_>>(&pending_pe, vec![certificate], sid, &signing_key).expect("Failed to build an attribute certificate");
     pe_writer.attach_certificates(vec![original_cert, attr_cert.clone()]).expect("Failed to attach a certificate to PE");
     let new_pe_bytes = pe_writer.write_into().expect("Failed to write the new PE with new certificate");
     let new_pe = PE::parse(&new_pe_bytes[..]).expect("Failed to read the new PE");
