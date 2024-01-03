@@ -1,8 +1,8 @@
-use scroll::{Pread, ctx::TryFromCtx};
+use super::errors::{Error, Result};
 use der::Decode;
+use scroll::{ctx::TryFromCtx, Pread};
 use uuid::Uuid;
 use x509_cert::Certificate;
-use super::errors::{Result, Error};
 
 /// TODO: sort along the GUID types — EfiCertX509                  = "a5c059a1-94e4-4aa7-87b5-ab155c2bf072"
 
@@ -28,14 +28,14 @@ impl SignatureListHeader {
 pub struct Signature<'a> {
     pub owner: Uuid,
     pub data: &'a [u8],
-    pub certificate: Option<Certificate>
+    pub certificate: Option<Certificate>,
 }
 
 #[derive(Debug)]
 pub struct SignatureList<'a> {
     pub header: SignatureListHeader,
     signature_header: &'a [u8],
-    pub signatures: Vec<Signature<'a>>
+    pub signatures: Vec<Signature<'a>>,
 }
 
 #[derive(Debug)]
@@ -43,16 +43,16 @@ pub struct SignatureDatabase<'a>(pub Vec<SignatureList<'a>>);
 
 impl<'a> Signature<'a> {
     fn parse(bytes: &'a [u8], offset: usize, signature_size: u32) -> Result<Self> {
-        let owner = Uuid::from_slice_le(
-            bytes.get(offset..(offset + 16)).unwrap()
-        ).unwrap();
+        let owner = Uuid::from_slice_le(bytes.get(offset..(offset + 16)).unwrap()).unwrap();
 
-        let data = bytes.get((offset + 16)..(offset + signature_size as usize)).unwrap();
+        let data = bytes
+            .get((offset + 16)..(offset + signature_size as usize))
+            .unwrap();
 
         Ok(Self {
             owner,
             data,
-            certificate: Certificate::from_der(data).ok()
+            certificate: Certificate::from_der(data).ok(),
         })
     }
 }
@@ -64,23 +64,29 @@ impl<'a> TryFromCtx<'a, scroll::Endian> for SignatureList<'a> {
         let offset = &mut 0;
 
         let header: SignatureListHeader = from.gread_with(offset, ctx)?;
-        let signature_header = from.get(*offset..(*offset + header.header_length as usize)).ok_or(
-            Error::Malformed(
-            format!("No signature header on {}...{} in a {}-long bytes", *offset, *offset + header.header_length as usize, from.len())))?;
+        let signature_header = from
+            .get(*offset..(*offset + header.header_length as usize))
+            .ok_or(Error::Malformed(format!(
+                "No signature header on {}...{} in a {}-long bytes",
+                *offset,
+                *offset + header.header_length as usize,
+                from.len()
+            )))?;
         *offset += header.header_length as usize;
         let mut signatures = Vec::new();
         while *offset < (header.length as usize) {
-            signatures.push(
-                Signature::parse(from, *offset, header.signature_length)?
-            );
+            signatures.push(Signature::parse(from, *offset, header.signature_length)?);
             *offset += header.signature_length as usize;
         }
 
-        Ok((Self {
-            header,
-            signature_header,
-            signatures
-        }, *offset))
+        Ok((
+            Self {
+                header,
+                signature_header,
+                signatures,
+            },
+            *offset,
+        ))
     }
 }
 
@@ -98,4 +104,3 @@ impl<'a> TryFromCtx<'a, scroll::Endian> for SignatureDatabase<'a> {
         Ok((SignatureDatabase(lists), *offset))
     }
 }
-

@@ -1,4 +1,4 @@
-use digest::{DynDigest, Digest, Output};
+use digest::{Digest, DynDigest, Output};
 use goblin::pe::PE;
 
 pub trait Authenticode {

@@ -1,23 +1,22 @@
 use std::collections::HashMap;
 
-use crate::errors::VerificationError;
 use crate::authenticode::Authenticode;
 use crate::certificate::{AttributeCertificateExt, DigestInfo};
+use crate::errors::VerificationError;
 use cms::signed_data::SignedData;
 use const_oid::db::DB;
 use digest::{Digest, DynDigest};
 use goblin::pe::PE;
-use x509_cert::Certificate;
 use x509_cert::spki::AlgorithmIdentifierOwned;
+use x509_cert::Certificate;
 use x509_verify::VerifyingKey;
 
 /// Policies to use when verifying the signatures of a PE.
 /// e.g. which certificates are trusted.
 pub struct VerificationOptions {
     /// Trusted certificates set, if None, there's no trust verification performed.
-    pub trust_store: Option<Vec<Certificate>>
+    pub trust_store: Option<Vec<Certificate>>,
 }
-
 
 /// Returns a couple of signed data and digest information
 /// contained in the PE.
@@ -25,12 +24,14 @@ pub struct VerificationOptions {
 pub fn certificates_from_pe(pe: &PE) -> Vec<(SignedData, DigestInfo)> {
     pe.certificates
         .iter()
-        .filter_map(|(_, cert)| match (cert.as_signed_data(), cert.as_spc_indirect_data_content()) {
-            (Some(Ok(sdata)), Some(Ok(spc))) => Some((sdata, spc.message_digest)),
-            _ => None
-        }).collect()
+        .filter_map(|(_, cert)| {
+            match (cert.as_signed_data(), cert.as_spc_indirect_data_content()) {
+                (Some(Ok(sdata)), Some(Ok(spc))) => Some((sdata, spc.message_digest)),
+                _ => None,
+            }
+        })
+        .collect()
 }
-
 
 /// Get a hasher for a given digest algorithm
 /// Stolen from RustCrypto/formats cms crate.
@@ -56,7 +57,10 @@ pub(crate) fn get_hasher(
 /// *Almost* all potential source of errors are included in the second element of tuple, even if it
 /// passed. There's no guarantee this function will find *all* source of errors, some code paths
 /// could early return to show a more "important" error before getting to the next error.
-pub fn verify_pe_signatures(pe: &PE, options: VerificationOptions) -> Result<(bool, Vec<VerificationError>), VerificationError> {
+pub fn verify_pe_signatures(
+    pe: &PE,
+    options: VerificationOptions,
+) -> Result<(bool, Vec<VerificationError>), VerificationError> {
     let certificates = certificates_from_pe(pe);
     let mut hashes = HashMap::new();
     let mut verified = 0;
@@ -79,8 +83,11 @@ pub fn verify_pe_signatures(pe: &PE, options: VerificationOptions) -> Result<(bo
             let valid_authenticode = message_digest.digest.as_bytes() == &authenticode[..];
 
             if !valid_authenticode {
-                errors.push(VerificationError::InvalidAuthenticode(sdata.certificates.clone(), format!("{:x?}", authenticode),
-                    format!("{:x?}", message_digest.digest.as_bytes())));
+                errors.push(VerificationError::InvalidAuthenticode(
+                    sdata.certificates.clone(),
+                    format!("{:x?}", authenticode),
+                    format!("{:x?}", message_digest.digest.as_bytes()),
+                ));
             }
 
             // Verify if any of the certificate is valid among a set of trusted certificates.
@@ -106,8 +113,10 @@ pub fn verify_pe_signatures(pe: &PE, options: VerificationOptions) -> Result<(bo
                         if !untrusted_certificate {
                             errors.push(VerificationError::UntrustedCertificate(certificate));
                         }
-                    },
-                    cms::cert::CertificateChoices::Other(_other) => todo!("Certificate choice of type 'Other' is unsupported")
+                    }
+                    cms::cert::CertificateChoices::Other(_other) => {
+                        todo!("Certificate choice of type 'Other' is unsupported")
+                    }
                 }
             }
 
@@ -125,11 +134,11 @@ pub fn verify_pe_signatures(pe: &PE, options: VerificationOptions) -> Result<(bo
     }
 }
 
-
 /// Perform verification of the PE signatures while trusting any certificate.
 /// Useful when you do not care about verifying that a certificate which signed the PE
 /// has been signed by a certificate you trust.
-pub fn verify_pe_signatures_no_trust(pe: &PE) -> Result<(bool, Vec<VerificationError>), VerificationError> {
+pub fn verify_pe_signatures_no_trust(
+    pe: &PE,
+) -> Result<(bool, Vec<VerificationError>), VerificationError> {
     verify_pe_signatures(pe, VerificationOptions { trust_store: None })
 }
-
