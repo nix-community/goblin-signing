@@ -4,6 +4,9 @@ license = "MIT"
 version = "0.1.0"
 edition = "2021"
 repository = "https://github.com/RaitoBezarius/goblin-signing"
+description = "A subcrate for signing PE binaries using Goblin"
+keywords = ["parsing", "signing", "pe", "goblin", "cryptography"]
+categories = ["cryptography", "parsing"]
 
 [dependencies]
 digest = { version = "0.10.6", features = [ "alloc" ] }
