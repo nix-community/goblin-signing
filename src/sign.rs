@@ -1,6 +1,6 @@
 use std::result::Result;
 
-use cms::{builder::{SignerInfoBuilder, SignedDataBuilder}, signed_data::SignerIdentifier, content_info::ContentInfo};
+use cms::{builder::{SignerInfoBuilder, SignedDataBuilder}, signed_data::SignerIdentifier};
 use der::Encode;
 use digest::Digest;
 use signature::{Keypair, Signer};
@@ -13,7 +13,7 @@ use crate::errors::SignatureError;
 /// Produces a certificate for the given PE
 /// with the given signer identifier and signer.
 pub fn create_certificate<'pe, 's, D: Digest, S, Signature>(pe: &PE<'pe>,
-    certificate: Certificate,
+    certificates: Vec<Certificate>,
     sid: SignerIdentifier,
     signer: &'s S) -> Result<AttributeCertificate<'pe>, SignatureError>
 where
@@ -38,13 +38,17 @@ where
     // The construction never fails…
         .unwrap();
 
-    let signed_data_builder = signed_data_builder
+    let mut signed_data_builder = signed_data_builder
         .add_signer_info(signer_info)
         .unwrap()
         .add_digest_algorithm(digest_algorithm)
-        .unwrap()
+        .unwrap();
+
+    for certificate in certificates {
+        signed_data_builder = signed_data_builder
         .add_certificate(cms::cert::CertificateChoices::Certificate(certificate))
         .unwrap();
+    }
 
     let signed_data = signed_data_builder.build().unwrap();
     let mut certificate_contents = Vec::new();
