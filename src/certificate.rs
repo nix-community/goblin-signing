@@ -8,10 +8,10 @@ use x509_cert::der::asn1::ObjectIdentifier;
 use x509_cert::der::{Any, Decode, Result, Sequence};
 use x509_cert::spki::AlgorithmIdentifierOwned;
 
-/// SPC_INDIRECT_DATA_OBJID http://oid-info.com/get/1.3.6.1.4.1.311.2.1.4
+/// SPC_INDIRECT_DATA_OBJID <http://oid-info.com/get/1.3.6.1.4.1.311.2.1.4>
 pub const SPC_INDIRECT_DATA_OBJID: ObjectIdentifier =
     ObjectIdentifier::new_unwrap("1.3.6.1.4.1.311.2.1.4");
-/// https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-oshared/1537695a-28f0-4828-8b7b-d6dab62b8030
+/// <https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-oshared/1537695a-28f0-4828-8b7b-d6dab62b8030>
 pub const SPC_PE_IMAGE_DATA_OBJID: ObjectIdentifier =
     ObjectIdentifier::new_unwrap("1.3.6.1.4.1.311.2.1.15");
 pub const DEFAULT_DATA: SpcAttributeTypeAndOptionalValue = SpcAttributeTypeAndOptionalValue {
@@ -95,12 +95,13 @@ impl SignedDataExt for SignedData {
     }
 
     fn as_message_digest(&self) -> Option<Result<DigestInfo>> {
-        self.as_spc_indirect_data_content().map(|maybe_spc| maybe_spc.map(|spc| spc.message_digest))
+        self.as_spc_indirect_data_content()
+            .map(|maybe_spc| maybe_spc.map(|spc| spc.message_digest))
     }
 }
 
 impl<'a> AttributeCertificateExt<'a> for AttributeCertificate<'a> {
-    /// Return the pkcs7 [`ContentInfo`] attached to the [`PE`]
+    /// Return the pkcs7 [`ContentInfo`] attached to the [`goblin::pe::PE`]
     fn as_signed_data(&self) -> Option<Result<SignedData>> {
         if self.certificate_type == AttributeCertificateType::PkcsSignedData {
             Some(
