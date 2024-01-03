@@ -14,7 +14,7 @@ use const_oid::AssociatedOid;
 use cryptoki::{
     context::{CInitializeArgs, Pkcs11},
     mechanism::Mechanism,
-    object::{Attribute, CertificateType, KeyType, ObjectHandle},
+    object::{Attribute, KeyType, ObjectHandle},
     session::Session,
     slot::Slot,
 };
@@ -92,7 +92,7 @@ fn initialize_token(pkcs11: &mut Pkcs11, token: &Pkcs11Uri) -> (Slot, Session) {
         prompt_label()
     };
 
-    let _ = pkcs11
+    pkcs11
         .init_token(slot, &pin, &token_label)
         .expect("Failed to initialize the token");
     let session = pkcs11
@@ -100,18 +100,18 @@ fn initialize_token(pkcs11: &mut Pkcs11, token: &Pkcs11Uri) -> (Slot, Session) {
         .expect("Failed to open the slot in RW session");
 
     println!("Session opened in read-write");
-    let _ = session
+    session
         .login(cryptoki::session::UserType::So, Some(&pin))
         .unwrap();
     println!("Logged in as the security officer");
 
-    let _ = session.init_pin(&pin).unwrap();
+    session.init_pin(&pin).unwrap();
     println!("Normal pin initialized");
 
-    let _ = session.logout().unwrap();
+    session.logout().unwrap();
     println!("Logged out from the security officer");
 
-    let _ = session
+    session
         .login(cryptoki::session::UserType::User, Some(&pin))
         .unwrap();
     println!("Logged in as a user");
@@ -153,7 +153,7 @@ fn connect_to_token(pkcs11: &mut Pkcs11, token: &Pkcs11Uri) -> (Slot, Session) {
     }
     .try_into()
     .expect("Failed to read the PIN value");
-    let _ = session
+    session
         .login(cryptoki::session::UserType::User, Some(&pin))
         .unwrap();
 
@@ -285,9 +285,9 @@ fn generate_secrets(
 
     // Generate a private key for the CA.
     // TODO: find or create the key.
-    let (ca_public_key, ca_private_key) = generate_signing_key(&session, &ca_key_info, mechanism);
+    let (ca_public_key, ca_private_key) = generate_signing_key(session, &ca_key_info, mechanism);
     let (subca_public_key, subca_private_key) =
-        generate_signing_key(&session, &subca_key_info, mechanism);
+        generate_signing_key(session, &subca_key_info, mechanism);
 
     println!("CA label: {}", ca_key_info.label);
     let ca_signer = match mechanism {
@@ -304,7 +304,7 @@ fn generate_secrets(
 
     // As it is self-signed, the SPKI is the public key of the ca_signer.
     let ca_cert = find_or_create(
-        &session,
+        session,
         &ca_signer,
         ca_parameters,
         ca_signer.verifying_key(),
@@ -312,7 +312,7 @@ fn generate_secrets(
     .expect("Failed to produce and self-sign the CA certificate");
     // As it is not self-signed, the SPKI is our own public key generated for the occasion.
     let subca_cert = find_or_create(
-        &session,
+        session,
         &ca_signer,
         subca_parameters,
         subca_signer.verifying_key(),

@@ -29,19 +29,18 @@ fn certificate_from_efi_database(contents: &[u8]) -> Vec<Certificate> {
     // Skip the 4 first bytes of attributes.
     let attributes = EfiAttribute::from_bits(u32::from_le_bytes(contents[..4].try_into().unwrap()));
     println!("Attributes: {:?}", attributes);
-    let signature_database: SignatureDatabase = (&contents[4..]).pread_with(0, scroll::LE).unwrap();
+    let signature_database: SignatureDatabase = contents[4..].pread_with(0, scroll::LE).unwrap();
     println!("Signature database: {:?}", signature_database);
 
     signature_database
         .0
         .into_iter()
-        .map(|list| {
+        .flat_map(|list| {
             list.signatures
                 .into_iter()
                 .filter_map(|signature| signature.certificate)
                 .collect::<Vec<_>>()
         })
-        .flatten()
         .collect()
 }
 

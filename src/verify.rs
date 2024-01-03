@@ -93,8 +93,7 @@ pub fn verify_pe_signatures(
             // Verify if any of the certificate is valid among a set of trusted certificates.
             // If there is no trusted certificates in the trust store, we skip this test.
             let trusted_certificates = match options.trust_store {
-                Some(ref trusted_certs) => trusted_certs.iter().map(|trusted_cert|
-                    VerifyingKey::try_from(trusted_cert)
+                Some(ref trusted_certs) => trusted_certs.iter().map(VerifyingKey::try_from
                 ).collect::<Result<Vec<_>, _>>().expect("Failed to transform a trusted certificate into a verifying key; unsupported certificate?"),
                 None => Vec::new()
             };
@@ -111,7 +110,9 @@ pub fn verify_pe_signatures(
 
                         any_valid_certificate = any_valid_certificate || !untrusted_certificate;
                         if !untrusted_certificate {
-                            errors.push(VerificationError::UntrustedCertificate(certificate));
+                            errors.push(VerificationError::UntrustedCertificate(Box::from(
+                                certificate,
+                            )));
                         }
                     }
                     cms::cert::CertificateChoices::Other(_other) => {

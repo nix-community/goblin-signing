@@ -34,7 +34,7 @@ pub struct Signature<'a> {
 #[derive(Debug)]
 pub struct SignatureList<'a> {
     pub header: SignatureListHeader,
-    signature_header: &'a [u8],
+    pub signature_header: &'a [u8],
     pub signatures: Vec<Signature<'a>>,
 }
 

@@ -19,7 +19,7 @@ pub enum VerificationError {
     #[error("Authenticode is not matching, expected: {1}, got: {2}")]
     InvalidAuthenticode(Option<cms::signed_data::CertificateSet>, String, String),
     #[error("One of the certificate expired")]
-    CertificateExpiration(x509_cert::certificate::Certificate),
+    CertificateExpiration(Box<x509_cert::certificate::Certificate>),
     #[error("Untrusted certificate")]
-    UntrustedCertificate(x509_cert::certificate::Certificate),
+    UntrustedCertificate(Box<x509_cert::certificate::Certificate>),
 }

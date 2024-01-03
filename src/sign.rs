@@ -9,7 +9,6 @@ use digest::Digest;
 use goblin::pe::{certificate_table::AttributeCertificate, PE};
 use signature::{Keypair, Signer};
 use x509_cert::{
-    builder::Builder,
     spki::{DynSignatureAlgorithmIdentifier, EncodePublicKey, SignatureBitStringEncoding},
     Certificate,
 };
@@ -19,11 +18,11 @@ use crate::{authenticode::Authenticode, certificate::DigestInfo};
 
 /// Produces a certificate for the given PE
 /// with the given signer identifier and signer.
-pub fn create_certificate<'pe, 's, D: Digest, S, Signature>(
+pub fn create_certificate<'pe, D: Digest, S, Signature>(
     pe: &PE<'pe>,
     certificates: Vec<Certificate>,
     sid: SignerIdentifier,
-    signer: &'s S,
+    signer: &S,
 ) -> Result<AttributeCertificate<'pe>, SignatureError>
 where
     D: const_oid::AssociatedOid,

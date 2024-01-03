@@ -39,7 +39,7 @@ impl DigestInfo {
     }
     pub fn as_spc_indirect_data_content(self) -> SpcIndirectDataContent {
         let mut data = DEFAULT_DATA.clone();
-        data.value = Some(Any::encode_from(&OctetString::new(*&[]).unwrap()).unwrap());
+        data.value = Some(Any::encode_from(&OctetString::new([]).unwrap()).unwrap());
         SpcIndirectDataContent {
             data,
             message_digest: self,
@@ -95,8 +95,7 @@ impl SignedDataExt for SignedData {
     }
 
     fn as_message_digest(&self) -> Option<Result<DigestInfo>> {
-        self.as_spc_indirect_data_content()
-            .and_then(|maybe_spc| Some(maybe_spc.map(|spc| spc.message_digest)))
+        self.as_spc_indirect_data_content().map(|maybe_spc| maybe_spc.map(|spc| spc.message_digest))
     }
 }
 
