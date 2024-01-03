@@ -13,6 +13,8 @@ in
   shell = pkgs.mkShell rec {
     buildInputs = [
       pkgs.cargo
+      pkgs.rustfmt
+      pkgs.clippy
       pkgs.rustc
       pkgs.softhsm
     ];
