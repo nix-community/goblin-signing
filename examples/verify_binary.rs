@@ -7,8 +7,8 @@ use std::path::PathBuf;
 use clap::Parser;
 use der::Decode;
 use goblin_signing::verify::VerificationOptions;
-use goblin_signing::efi::variable::AuthenticatedVariable2;
-use goblin_signing::efi::signature_lists::{SignatureList, SignatureDatabase};
+
+use goblin_signing::efi::signature_lists::{SignatureDatabase};
 use x509_cert::Certificate;
 use bitflags::bitflags;
 use scroll::Pread;

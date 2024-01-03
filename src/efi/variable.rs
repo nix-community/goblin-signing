@@ -1,4 +1,4 @@
-use goblin::pe::certificate_table::WindowsCertificateHeader;
+
 use scroll::Pread;
 use scroll::ctx::TryFromCtx;
 use super::errors::Result;
