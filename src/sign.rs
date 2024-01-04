@@ -18,7 +18,7 @@ use crate::{authenticode::Authenticode, certificate::DigestInfo};
 
 /// Produces a certificate for the given PE
 /// with the given signer identifier and signer.
-pub fn create_certificate<'pe, D: Digest, S, Signature>(
+pub fn create_certificate_with_sid<'pe, D: Digest, S, Signature>(
     pe: &PE<'pe>,
     certificates: Vec<Certificate>,
     sid: SignerIdentifier,
@@ -71,4 +71,32 @@ where
         goblin::pe::certificate_table::AttributeCertificateRevision::Revision2_0,
         goblin::pe::certificate_table::AttributeCertificateType::PkcsSignedData,
     ))
+}
+/// Produces a certificate for the given PE
+/// with the given signer.
+/// The signer identity is derived from the leaf certificate.
+pub fn create_certificate<'pe, D: Digest, S, Signature>(
+    pe: &PE<'pe>,
+    certificates: Vec<Certificate>,
+    leaf_certificate: Certificate,
+    signer: &S,
+) -> Result<AttributeCertificate<'pe>, SignatureError>
+where
+    D: const_oid::AssociatedOid,
+    S: Keypair + DynSignatureAlgorithmIdentifier,
+    S::VerifyingKey: EncodePublicKey,
+    S: Signer<Signature>,
+    Signature: SignatureBitStringEncoding,
+{
+    create_certificate_with_sid::<D, S, Signature>(
+        pe,
+        certificates,
+        cms::signed_data::SignerIdentifier::IssuerAndSerialNumber(
+            cms::cert::IssuerAndSerialNumber {
+                issuer: leaf_certificate.tbs_certificate.issuer.clone(),
+                serial_number: leaf_certificate.tbs_certificate.serial_number.clone(),
+            },
+        ),
+        signer,
+    )
 }

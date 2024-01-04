@@ -7,7 +7,7 @@ use cms::cert::IssuerAndSerialNumber;
 use digest::Digest;
 use goblin::pe::{writer::PEWriter, PE};
 use goblin_signing::authenticode::Authenticode;
-use goblin_signing::sign::create_certificate;
+use goblin_signing::sign::create_certificate_with_sid;
 use goblin_signing::verify::{certificates_from_pe, verify_pe_signatures_no_trust};
 use p256::ecdsa::SigningKey;
 use sha2::Sha256;
@@ -56,7 +56,7 @@ fn test_create_attribute_certificate() {
     let signing_key = SigningKey::random(&mut OsRng);
     let sid = build_issuer("CN=test", 1).expect("Failed to build a trivial issuer");
     let certificate = build_certificate("CN=test", 1, &signing_key);
-    let _ = create_certificate::<Sha256, _, ecdsa::der::Signature<_>>(
+    let _ = create_certificate_with_sid::<Sha256, _, ecdsa::der::Signature<_>>(
         &pe,
         vec![certificate],
         sid,
@@ -89,7 +89,7 @@ fn test_attaching_attribute_certificate_to_pe() {
         "Pending PE digest: {:?}",
         pending_pe.authenticode_dyndigest(Box::new(sha2::Sha256::new()))
     );
-    let attr_cert = create_certificate::<Sha256, _, ecdsa::der::Signature<_>>(
+    let attr_cert = create_certificate_with_sid::<Sha256, _, ecdsa::der::Signature<_>>(
         &pending_pe,
         vec![certificate],
         sid,
@@ -143,7 +143,7 @@ fn test_multisig_pe() {
         .write_into()
         .expect("Failed to write an unsigned PE");
     let pending_pe = PE::parse(&pending_pe[..]).expect("Failed to parse the unsigned PE");
-    let attr_cert = create_certificate::<Sha256, _, ecdsa::der::Signature<_>>(
+    let attr_cert = create_certificate_with_sid::<Sha256, _, ecdsa::der::Signature<_>>(
         &pending_pe,
         vec![certificate],
         sid,
