@@ -341,7 +341,6 @@ fn sign_file<S: SessionLike>(
     let pe = PE::parse(&contents).expect("Failed to parse the PE binary");
 
     let certificate;
-    let issuer;
     {
         let parent = parents.last().unwrap();
         // Create a unique certificate for this particular instance,
@@ -364,18 +363,12 @@ fn sign_file<S: SessionLike>(
         certificate = builder
             .build::<ecdsa::der::Signature<p256::NistP256>>()
             .expect("Failed to assemble the certificate");
-        issuer = cms::signed_data::SignerIdentifier::IssuerAndSerialNumber(
-            cms::cert::IssuerAndSerialNumber {
-                issuer: parent.tbs_certificate.issuer.clone(),
-                serial_number: parent.tbs_certificate.serial_number.clone(),
-            },
-        );
     }
-    parents.push(certificate);
+    parents.push(certificate.clone());
     let pe_certificate = create_certificate::<Sha256, _, ecdsa::der::Signature<_>>(
         &pe,
         parents,
-        issuer,
+        certificate,
         parent_signer,
     )
     .expect("Failed to produce an PE attribute certificate");
