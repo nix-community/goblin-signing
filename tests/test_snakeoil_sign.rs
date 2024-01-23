@@ -5,10 +5,11 @@ use std::time::Duration;
 
 use cms::cert::IssuerAndSerialNumber;
 use digest::Digest;
-use goblin::pe::{writer::PEWriter, PE};
+use goblin::pe::PE;
 use goblin_signing::authenticode::Authenticode;
 use goblin_signing::sign::create_certificate;
 use goblin_signing::verify::{certificates_from_pe, verify_pe_signatures_no_trust};
+use ifrit::writer::PEWriter;
 use p256::ecdsa::SigningKey;
 use sha2::Sha256;
 use signature::rand_core::OsRng;
@@ -97,7 +98,7 @@ fn test_attaching_attribute_certificate_to_pe() {
     )
     .expect("Failed to build an attribute certificate");
     pe_writer
-        .attach_certificates(vec![attr_cert.clone()])
+        .attach_certificates(vec![attr_cert.attribute()])
         .expect("Failed to attach a certificate to PE");
     let new_pe_bytes = pe_writer
         .write_into()
@@ -108,11 +109,11 @@ fn test_attaching_attribute_certificate_to_pe() {
     assert_eq!(new_pe.certificates.len(), 1);
     let cert = new_pe.certificates.first().unwrap();
     assert!(
-        cert.1.certificate == attr_cert.certificate,
+        cert.certificate == attr_cert.attribute().certificate,
         "Attribute certificate is different from expected!"
     );
     assert!(
-        original_cert.1.certificate != cert.1.certificate,
+        original_cert.certificate != cert.certificate,
         "Attribute certificate is same as original!"
     );
     println!("PE new certificates: {:?}", certificates_from_pe(&new_pe));
@@ -130,7 +131,7 @@ fn test_attaching_attribute_certificate_to_pe() {
 fn test_multisig_pe() {
     let file = std::fs::read("tests/bins/nixos-uki.efi").unwrap();
     let pe = PE::parse(&file[..]).unwrap();
-    let (_, original_cert) = pe
+    let original_cert = pe
         .certificates
         .first()
         .expect("Original PE does not have a certificate!")
@@ -151,7 +152,7 @@ fn test_multisig_pe() {
     )
     .expect("Failed to build an attribute certificate");
     pe_writer
-        .attach_certificates(vec![original_cert, attr_cert.clone()])
+        .attach_certificates(vec![original_cert, attr_cert.attribute()])
         .expect("Failed to attach a certificate to PE");
     let new_pe_bytes = pe_writer
         .write_into()

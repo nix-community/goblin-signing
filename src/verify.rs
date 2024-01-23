@@ -24,12 +24,12 @@ pub struct VerificationOptions {
 pub fn certificates_from_pe(pe: &PE) -> Vec<(SignedData, DigestInfo)> {
     pe.certificates
         .iter()
-        .filter_map(|(_, cert)| {
-            match (cert.as_signed_data(), cert.as_spc_indirect_data_content()) {
+        .filter_map(
+            |cert| match (cert.as_signed_data(), cert.as_spc_indirect_data_content()) {
                 (Some(Ok(sdata)), Some(Ok(spc))) => Some((sdata, spc.message_digest)),
                 _ => None,
-            }
-        })
+            },
+        )
         .collect()
 }
 

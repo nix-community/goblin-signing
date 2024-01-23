@@ -20,8 +20,9 @@ use cryptoki::{
 };
 use cryptoki_rustcrypto::{x509::CertPkcs11, SessionLike};
 use der::Encode;
-use goblin::pe::{writer::PEWriter, PE};
+use goblin::pe::PE;
 use goblin_signing::sign::create_certificate;
+use ifrit::writer::PEWriter;
 use pkcs11_uri::Pkcs11Uri;
 use rpassword::read_password;
 use sha2::Sha256;
@@ -381,7 +382,7 @@ fn sign_file<S: SessionLike>(
     .expect("Failed to produce an PE attribute certificate");
     let mut pe_writer = PEWriter::new(pe).expect("Failed to construct the PE writer");
     pe_writer
-        .attach_certificates(vec![pe_certificate])
+        .attach_certificates(vec![pe_certificate.attribute()])
         .expect("Failed to attach a new certificate to PE");
     println!("Signed!");
     std::fs::write(
