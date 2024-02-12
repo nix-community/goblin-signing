@@ -43,12 +43,12 @@ impl CertificateBundle {
         }
     }
 
-    pub fn attribute(&self) -> AttributeCertificate {
-        AttributeCertificate::from_bytes(
+    pub fn attribute(&self) -> Result<AttributeCertificate, SignatureError> {
+        Ok(AttributeCertificate::from_bytes(
             &self.certificate_raw,
             self.attribute_revision,
             self.attribute_type,
-        )
+        )?)
     }
 }
 

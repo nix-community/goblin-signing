@@ -8,6 +8,8 @@ pub enum SignatureError {
     UnknownSignatureAlgorithmIdentifier(#[from] spki::Error),
     #[error("Failed to run the signer information through the signer")]
     SigningError(#[from] x509_cert::builder::Error),
+    #[error("Malformed PE at assembly time")]
+    MalformedPE(#[from] goblin::error::Error),
 }
 
 #[derive(Error, Debug)]

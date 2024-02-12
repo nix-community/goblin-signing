@@ -382,7 +382,9 @@ fn sign_file<S: SessionLike>(
     .expect("Failed to produce an PE attribute certificate");
     let mut pe_writer = PEWriter::new(pe).expect("Failed to construct the PE writer");
     pe_writer
-        .attach_certificates(vec![pe_certificate.attribute()])
+        .attach_certificates(vec![pe_certificate
+            .attribute()
+            .expect("Failed to produce a certificate")])
         .expect("Failed to attach a new certificate to PE");
     println!("Signed!");
     std::fs::write(

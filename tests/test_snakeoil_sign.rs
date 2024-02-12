@@ -1,3 +1,6 @@
+use goblin::pe::certificate_table::AttributeCertificate;
+use pretty_assertions::assert_eq;
+use std::cmp::{max, min};
 /// We test various ways to manipulate PE binaries w.r.t. to signatures
 /// with a snakeoil certificate and signer.
 use std::str::FromStr;
@@ -19,6 +22,35 @@ use x509_cert::name::{Name, RdnSequence};
 use x509_cert::serial_number::SerialNumber;
 use x509_cert::time::Validity;
 use x509_cert::Certificate;
+
+/// Assert equality modulo alignment.
+fn assert_eq_modulo_alignment(a: &AttributeCertificate, b: &AttributeCertificate) {
+    let m = min(a.certificate.len(), b.certificate.len());
+    let n = max(a.certificate.len(), b.certificate.len());
+    assert_eq!(
+        a.certificate[0..m],
+        b.certificate[0..m],
+        "Certificate does not agree on their common parts"
+    );
+
+    if a.certificate.len() > m {
+        let zeroes = vec![0u8; n - m];
+        assert_eq!(
+            &a.certificate[m..n],
+            &zeroes[..],
+            "Certificate A alignment does not contain only zeroes"
+        );
+    }
+
+    if b.certificate.len() > m {
+        let zeroes = vec![0u8; n - m];
+        assert_eq!(
+            &b.certificate[m..n],
+            &zeroes[..],
+            "Certificate A alignment does not contain only zeroes"
+        );
+    }
+}
 
 fn build_issuer(rdn: &str, serial: u32) -> der::Result<cms::signed_data::SignerIdentifier> {
     Ok(cms::signed_data::SignerIdentifier::IssuerAndSerialNumber(
@@ -68,6 +100,7 @@ fn test_create_attribute_certificate() {
 
 #[test]
 fn test_attaching_attribute_certificate_to_pe() {
+    stderrlog::new().verbosity(4).init().unwrap();
     let file = std::fs::read("tests/bins/nixos-uki.efi").unwrap();
     let pe = PE::parse(&file[..]).unwrap();
     println!("PE original certificates: {:?}", certificates_from_pe(&pe));
@@ -97,8 +130,11 @@ fn test_attaching_attribute_certificate_to_pe() {
         &signing_key,
     )
     .expect("Failed to build an attribute certificate");
+    pe_writer.clear_certificates();
     pe_writer
-        .attach_certificates(vec![attr_cert.attribute()])
+        .attach_certificates(vec![attr_cert
+            .attribute()
+            .expect("Failed to produce certificate")])
         .expect("Failed to attach a certificate to PE");
     let new_pe_bytes = pe_writer
         .write_into()
@@ -108,10 +144,17 @@ fn test_attaching_attribute_certificate_to_pe() {
     let new_pe = PE::parse(&new_pe_bytes[..]).expect("Failed to read the new PE");
     assert_eq!(new_pe.certificates.len(), 1);
     let cert = new_pe.certificates.first().unwrap();
+    let attr_cert = attr_cert
+        .attribute()
+        .expect("Failed to assemble an attribute certificate");
     assert!(
-        cert.certificate == attr_cert.attribute().certificate,
-        "Attribute certificate is different from expected!"
+        cert.length == attr_cert.length,
+        "Attribute certificate differs in length, expected: {} bytes, got: {} bytes",
+        attr_cert.length,
+        cert.length
     );
+
+    assert_eq_modulo_alignment(&cert, &attr_cert);
     assert!(
         original_cert.certificate != cert.certificate,
         "Attribute certificate is same as original!"
@@ -151,8 +194,14 @@ fn test_multisig_pe() {
         &signing_key,
     )
     .expect("Failed to build an attribute certificate");
+    pe_writer.clear_certificates();
     pe_writer
-        .attach_certificates(vec![original_cert, attr_cert.attribute()])
+        .attach_certificates(vec![
+            original_cert,
+            attr_cert
+                .attribute()
+                .expect("Failed to produce a certificate"),
+        ])
         .expect("Failed to attach a certificate to PE");
     let new_pe_bytes = pe_writer
         .write_into()

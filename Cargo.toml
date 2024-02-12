@@ -37,6 +37,9 @@ log = "0.4.20"
 pkcs11-uri = "0.1.3"
 p256 = "0.13.2"
 
+[patch."https://github.com/RaitoBezarius/goblin.git"]
+goblin = { path = "../../m4b/goblin" }
+
 [[example]]
 name = "sign_binary"
 
@@ -46,4 +49,6 @@ name = "verify_binary"
 [dev-dependencies]
 bitflags = "2.4.1"
 clap = { version = "4.4.8", features = [ "derive" ] }
+pretty_assertions = "1.4.0"
 rpassword = "7.3.1"
+stderrlog = "0.5.4"
