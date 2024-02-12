@@ -6,7 +6,12 @@ use cms::{
 };
 use der::Encode;
 use digest::Digest;
-use goblin::pe::{certificate_table::AttributeCertificate, PE};
+use goblin::pe::{
+    certificate_table::{
+        AttributeCertificate, AttributeCertificateRevision, AttributeCertificateType,
+    },
+    PE,
+};
 use signature::{Keypair, Signer};
 use x509_cert::{
     spki::{DynSignatureAlgorithmIdentifier, EncodePublicKey, SignatureBitStringEncoding},
@@ -16,6 +21,37 @@ use x509_cert::{
 use crate::errors::SignatureError;
 use crate::{authenticode::Authenticode, certificate::DigestInfo};
 
+/// Because [`AttributeCertificate`] is a purely borrowing a structure,
+/// we cannot return it naked, we need to own the raw certificate data somewhere.
+#[derive(Debug, Clone)]
+pub struct CertificateBundle {
+    certificate_raw: Vec<u8>,
+    attribute_revision: AttributeCertificateRevision,
+    attribute_type: AttributeCertificateType,
+}
+
+impl CertificateBundle {
+    pub fn new(
+        raw: Vec<u8>,
+        attribute_revision: AttributeCertificateRevision,
+        attribute_type: AttributeCertificateType,
+    ) -> Self {
+        Self {
+            certificate_raw: raw,
+            attribute_revision,
+            attribute_type,
+        }
+    }
+
+    pub fn attribute(&self) -> Result<AttributeCertificate, SignatureError> {
+        Ok(AttributeCertificate::from_bytes(
+            &self.certificate_raw,
+            self.attribute_revision,
+            self.attribute_type,
+        )?)
+    }
+}
+
 /// Produces a certificate for the given PE
 /// with the given signer identifier and signer.
 pub fn create_certificate<'pe, D: Digest, S, Signature>(
@@ -23,7 +59,7 @@ pub fn create_certificate<'pe, D: Digest, S, Signature>(
     certificates: Vec<Certificate>,
     sid: SignerIdentifier,
     signer: &S,
-) -> Result<AttributeCertificate<'pe>, SignatureError>
+) -> Result<CertificateBundle, SignatureError>
 where
     D: const_oid::AssociatedOid,
     S: Keypair + DynSignatureAlgorithmIdentifier,
@@ -66,8 +102,8 @@ where
     let mut certificate_contents = Vec::new();
     signed_data.encode_to_vec(&mut certificate_contents)?;
 
-    Ok(AttributeCertificate::from_bytes(
-        certificate_contents.into(),
+    Ok(CertificateBundle::new(
+        certificate_contents,
         goblin::pe::certificate_table::AttributeCertificateRevision::Revision2_0,
         goblin::pe::certificate_table::AttributeCertificateType::PkcsSignedData,
     ))
